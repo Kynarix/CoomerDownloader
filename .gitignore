@@ -81,3 +81,12 @@ coverage/
 *.local
 .env
 .env.*
+
+# Forum/Marketing files
+FORUM_POST.txt
+FORUM_BASLIKLARI.txt
+BANNER_PROMPT.txt
+COLOR_PALETTE.md
+
+# DevTools
+devtools_options.yaml

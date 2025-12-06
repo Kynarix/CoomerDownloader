@@ -1,0 +1,108 @@
+# Coomer Downloader - Renk Paleti ve Tasarim Kurallari
+
+## Renk Paleti
+
+### Ana Renkler
+- **Primary Dark**: `#0D0D0D` - Koyu arka plan
+- **Primary Light**: `#FAFAFA` - Aydinlik arka plan
+- **Accent**: `#E53935` - Ana vurgu rengi (Kirmizi)
+- **Accent Light**: `#FF6F60` - Acik kirmizi vurgu
+
+### Yuzey Renkleri
+- **Surface Dark**: `#1A1A1A` - Koyu tema yuzey
+- **Surface Light**: `#FFFFFF` - Aydinlik tema yuzey
+- **Card Dark**: `#242424` - Koyu tema kart
+- **Card Light**: `#F5F5F5` - Aydinlik tema kart
+
+### Metin Renkleri
+- **Text Primary Dark**: `#FFFFFF` - Koyu tema ana metin (Beyaz)
+- **Text Secondary Dark**: `#B0B0B0` - Koyu tema ikincil metin (Acik Gri)
+- **Text Primary Light**: `#1A1A1A` - Aydinlik tema ana metin
+- **Text Secondary Light**: `#757575` - Aydinlik tema ikincil metin (Gri)
+
+### Durum Renkleri
+- **Success**: `#4CAF50` - Basarili islemler, pozitif aksiyonlar (Yesil)
+- **Warning**: `#FF9800` - Uyarilar, dikkat gerektiren durumlar (Turuncu)
+- **Error**: `#E53935` - Hatalar, kritik durumlar (Kirmizi)
+- **Info**: `#2196F3` - Bilgilendirme, linkler (Mavi)
+
+## Renk Kullanim Kurallari
+
+### Basliklar ve Vurgular
+- Ana basliklar: `#E53935` (Accent - Kirmizi)
+- Alt basliklar: `#E53935` (Accent - Kirmizi)
+- Ayiricilar/Cizgiler: `#E53935` (Accent - Kirmizi)
+
+### Metinler
+- Ana metin (Koyu tema): `#FFFFFF` (Beyaz)
+- Ana metin (Aydinlik tema): `#1A1A1A` (Koyu)
+- Ikincil metin (Koyu tema): `#B0B0B0` (Acik Gri)
+- Ikincil metin (Aydinlik tema): `#757575` (Gri)
+- Etiketler/Kucuk metin: `#757575` (Gri)
+
+### Butonlar ve Aksiyonlar
+- Indirme butonlari: `#4CAF50` (Success - Yesil)
+- Linkler: `#2196F3` (Info - Mavi)
+- Uyarilar: `#FF9800` (Warning - Turuncu)
+- Hatalar: `#E53935` (Error - Kirmizi)
+
+### Arka Planlar
+- Koyu tema arka plan: `#0D0D0D` (Primary Dark)
+- Aydinlik tema arka plan: `#FAFAFA` (Primary Light)
+- Kart arka plan (Koyu): `#242424` (Card Dark)
+- Kart arka plan (Aydinlik): `#F5F5F5` (Card Light)
+
+## Tasarim Prensipleri
+
+1. **Minimalist ve Temiz**: Gereksiz detaylardan kacin, sadelik oncelikli
+2. **Yuksek Kontrast**: Okunabilirlik icin yeterli kontrast sagla
+3. **Tutarlilik**: Ayni renkleri ayni amaclar icin kullan
+4. **Erisilebilirlik**: Renk kontrasti WCAG standartlarina uygun olmali
+5. **Modern Gorusum**: Material Design 3 prensiplerine uygun
+
+## Flutter Renk Tanimlamalari
+
+```dart
+// Primary Colors
+static const Color primaryDark = Color(0xFF0D0D0D);
+static const Color primaryLight = Color(0xFFFAFAFA);
+static const Color accent = Color(0xFFE53935);
+static const Color accentLight = Color(0xFFFF6F60);
+
+// Surface Colors
+static const Color surfaceDark = Color(0xFF1A1A1A);
+static const Color surfaceLight = Color(0xFFFFFFFF);
+static const Color cardDark = Color(0xFF242424);
+static const Color cardLight = Color(0xFFF5F5F5);
+
+// Text Colors
+static const Color textPrimaryDark = Color(0xFFFFFFFF);
+static const Color textSecondaryDark = Color(0xFFB0B0B0);
+static const Color textPrimaryLight = Color(0xFF1A1A1A);
+static const Color textSecondaryLight = Color(0xFF757575);
+
+// Status Colors
+static const Color success = Color(0xFF4CAF50);
+static const Color warning = Color(0xFFFF9800);
+static const Color error = Color(0xFFE53935);
+static const Color info = Color(0xFF2196F3);
+```
+
+## Forum Post Renkleri (BBCode)
+
+- Basliklar: `[color=#E53935]` (Kirmizi)
+- Ana metin: `[color=#FFFFFF]` (Beyaz)
+- Ikincil metin: `[color=#B0B0B0]` (Acik Gri)
+- Etiketler: `[color=#757575]` (Gri)
+- Indirme butonlari: `[color=#4CAF50]` (Yesil)
+- Linkler: `[color=#2196F3]` (Mavi)
+- Uyarilar: `[color=#FF9800]` (Turuncu)
+- Ayiricilar: `[color=#E53935]` (Kirmizi)
+
+## Notlar
+
+- Bu renk paleti Coomer Downloader uygulamasinin resmi renk semasidir
+- Tum yeni tasarimlar bu renk paletine uygun olmalidir
+- Renk degisiklikleri yapilirken tutarlilik korunmalidir
+- Dark ve Light tema destegi saglanmalidir
+

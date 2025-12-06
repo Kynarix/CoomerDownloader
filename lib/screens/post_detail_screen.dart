@@ -7,6 +7,7 @@ import '../models/post.dart';
 import '../providers/download_provider.dart';
 import '../services/storage_service.dart';
 import '../utils/theme.dart';
+import 'main_navigation.dart';
 
 // MIME type helper function
 String? getMimeType(String path) {
@@ -109,22 +110,25 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {
-              context.read<DownloadProvider>().downloadPost(
+            onPressed: () async {
+              final downloaded = await context.read<DownloadProvider>().downloadPost(
                     post: widget.post,
                     creatorName: widget.creatorName,
+                    context: context,
                   );
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text(
-                    '${widget.post.totalMediaCount} dosya indirme listesine eklendi',
+              if (downloaded && mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                      '${widget.post.totalMediaCount} dosya indirme listesine eklendi',
+                    ),
                   ),
-                ),
-              );
-              // Refresh download status
-              Future.delayed(const Duration(seconds: 2), () {
-                if (mounted) _checkDownloadedFiles();
-              });
+                );
+                // Refresh download status
+                Future.delayed(const Duration(seconds: 2), () {
+                  if (mounted) _checkDownloadedFiles();
+                });
+              }
             },
             icon: const Icon(Icons.download_rounded),
           ),
@@ -308,22 +312,37 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                               bottom: 4,
                               right: 4,
                               child: GestureDetector(
-                                onTap: () {
-                                  context.read<DownloadProvider>().downloadFile(
+                                onTap: () async {
+                                  final downloaded = await context.read<DownloadProvider>().downloadFile(
                                         url: file.url,
                                         filename: file.name,
                                         creatorName: widget.creatorName,
                                         postId: widget.post.id,
+                                        context: context,
                                       );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text('${file.name} indiriliyor'),
-                                    ),
-                                  );
-                                  // Refresh after download
-                                  Future.delayed(const Duration(seconds: 3), () {
-                                    if (mounted) _checkDownloadedFiles();
-                                  });
+                                  if (downloaded && mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text('${file.name} indiriliyor'),
+                                        action: SnackBarAction(
+                                          label: 'Indirmeler',
+                                          textColor: AppTheme.accent,
+                                          onPressed: () {
+                                            Navigator.of(context).pushAndRemoveUntil(
+                                              MaterialPageRoute(
+                                                builder: (_) => const MainNavigation(initialIndex: 1),
+                                              ),
+                                              (route) => false,
+                                            );
+                                          },
+                                        ),
+                                      ),
+                                    );
+                                    // Refresh after download
+                                    Future.delayed(const Duration(seconds: 3), () {
+                                      if (mounted) _checkDownloadedFiles();
+                                    });
+                                  }
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.all(4),
@@ -441,22 +460,37 @@ class _PostDetailScreenState extends State<PostDetailScreen> {
                             )
                           else
                             IconButton(
-                              onPressed: () {
-                                context.read<DownloadProvider>().downloadFile(
+                              onPressed: () async {
+                                final downloaded = await context.read<DownloadProvider>().downloadFile(
                                       url: attachment.url,
                                       filename: attachment.name,
                                       creatorName: widget.creatorName,
                                       postId: widget.post.id,
+                                      context: context,
                                     );
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  SnackBar(
-                                    content:
-                                        Text('${attachment.name} indiriliyor'),
-                                  ),
-                                );
-                                Future.delayed(const Duration(seconds: 3), () {
-                                  if (mounted) _checkDownloadedFiles();
-                                });
+                                if (downloaded && mounted) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content:
+                                          Text('${attachment.name} indiriliyor'),
+                                      action: SnackBarAction(
+                                        label: 'Indirmeler',
+                                        textColor: AppTheme.accent,
+                                        onPressed: () {
+                                          Navigator.of(context).pushAndRemoveUntil(
+                                            MaterialPageRoute(
+                                              builder: (_) => const MainNavigation(initialIndex: 1),
+                                            ),
+                                            (route) => false,
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                  );
+                                  Future.delayed(const Duration(seconds: 3), () {
+                                    if (mounted) _checkDownloadedFiles();
+                                  });
+                                }
                               },
                               icon: const Icon(Icons.download_rounded),
                               color: AppTheme.accent,
@@ -593,18 +627,35 @@ class _MediaViewerScreenState extends State<_MediaViewerScreen> {
             )
           else
             IconButton(
-              onPressed: () {
+              onPressed: () async {
                 final file = widget.files[_currentIndex];
-                context.read<DownloadProvider>().downloadFile(
+                final downloaded = await context.read<DownloadProvider>().downloadFile(
                       url: file.url,
                       filename: file.name,
                       creatorName: widget.creatorName,
                       postId: widget.postId,
+                      context: context,
                     );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('${file.name} indiriliyor')),
-                );
-                widget.onDownloadComplete();
+                if (downloaded) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('${file.name} indiriliyor'),
+                      action: SnackBarAction(
+                        label: 'Indirmeler',
+                        textColor: AppTheme.accent,
+                        onPressed: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const MainNavigation(initialIndex: 1),
+                            ),
+                            (route) => false,
+                          );
+                        },
+                      ),
+                    ),
+                  );
+                  widget.onDownloadComplete();
+                }
               },
               icon: const Icon(Icons.download_rounded, color: Colors.white),
             ),

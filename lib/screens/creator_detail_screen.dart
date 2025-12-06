@@ -8,6 +8,7 @@ import '../providers/download_provider.dart';
 import '../widgets/post_card.dart';
 import '../utils/theme.dart';
 import 'post_detail_screen.dart';
+import 'main_navigation.dart';
 
 class CreatorDetailScreen extends StatefulWidget {
   const CreatorDetailScreen({super.key});
@@ -58,7 +59,7 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
             slivers: [
               // App Bar with Banner
               SliverAppBar(
-                expandedHeight: 200,
+                expandedHeight: 150,
                 pinned: true,
                 backgroundColor: isDark ? AppTheme.primaryDark : AppTheme.primaryLight,
                 leading: IconButton(
@@ -138,20 +139,20 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
               // Creator Info
               SliverToBoxAdapter(
                 child: Transform.translate(
-                  offset: const Offset(0, -40),
+                  offset: const Offset(0, -30),
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.end,
                       children: [
                         Container(
-                          width: 80,
-                          height: 80,
+                          width: 70,
+                          height: 70,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             border: Border.all(
                               color: isDark ? AppTheme.primaryDark : AppTheme.primaryLight,
-                              width: 4,
+                              width: 3,
                             ),
                             boxShadow: [
                               BoxShadow(
@@ -179,7 +180,7 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                                     style: const TextStyle(
                                       color: Colors.white,
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 28,
+                                      fontSize: 24,
                                     ),
                                   ),
                                 ),
@@ -241,6 +242,76 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                   ),
                 ),
               ),
+              // Search and Filter Bar
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                  child: Column(
+                    children: [
+                      // Search bar
+                      TextField(
+                        onChanged: (value) => provider.setPostSearchQuery(value),
+                        decoration: InputDecoration(
+                          hintText: 'Post ara...',
+                          prefixIcon: const Icon(Icons.search),
+                          suffixIcon: provider.postSearchQuery.isNotEmpty
+                              ? IconButton(
+                                  icon: const Icon(Icons.clear),
+                                  onPressed: () => provider.setPostSearchQuery(''),
+                                )
+                              : null,
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      // Filter chips
+                      SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: Row(
+                          children: [
+                            FilterChip(
+                              label: const Text('Tumu'),
+                              selected: provider.postFilterType == null,
+                              onSelected: (selected) {
+                                provider.setPostFilterType(null);
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            FilterChip(
+                              label: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.image, size: 16),
+                                  SizedBox(width: 4),
+                                  Text('Resim'),
+                                ],
+                              ),
+                              selected: provider.postFilterType == 'image',
+                              onSelected: (selected) {
+                                provider.setPostFilterType(selected ? 'image' : null);
+                              },
+                            ),
+                            const SizedBox(width: 8),
+                            FilterChip(
+                              label: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.videocam, size: 16),
+                                  SizedBox(width: 4),
+                                  Text('Video'),
+                                ],
+                              ),
+                              selected: provider.postFilterType == 'video',
+                              onSelected: (selected) {
+                                provider.setPostFilterType(selected ? 'video' : null);
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
               // Download All Button
               SliverToBoxAdapter(
                 child: Padding(
@@ -249,20 +320,35 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                     children: [
                       Expanded(
                         child: ElevatedButton.icon(
-                          onPressed: provider.creatorPosts.isEmpty
+                          onPressed: provider.filteredCreatorPosts.isEmpty
                               ? null
-                              : () {
-                                  context.read<DownloadProvider>().downloadAllPosts(
-                                        posts: provider.creatorPosts,
+                              : () async {
+                                  await context.read<DownloadProvider>().downloadAllPosts(
+                                        posts: provider.filteredCreatorPosts,
                                         creatorName: creator.name,
+                                        context: context,
                                       );
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(
-                                      content: Text(
-                                        '${provider.creatorPosts.length} post indirme listesine eklendi',
+                                  if (mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          '${provider.filteredCreatorPosts.length} post indirme listesine eklendi',
+                                        ),
+                                        action: SnackBarAction(
+                                          label: 'Indirmeler',
+                                          textColor: AppTheme.accent,
+                                          onPressed: () {
+                                            Navigator.of(context).pushAndRemoveUntil(
+                                              MaterialPageRoute(
+                                                builder: (_) => const MainNavigation(initialIndex: 1),
+                                              ),
+                                              (route) => false,
+                                            );
+                                          },
+                                        ),
                                       ),
-                                    ),
-                                  );
+                                    );
+                                  }
                                 },
                           icon: const Icon(Icons.download_rounded, size: 20),
                           label: const Text('Tumunu Indir'),
@@ -275,7 +361,10 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                           borderRadius: BorderRadius.circular(12),
                         ),
                         child: IconButton(
-                          onPressed: () => provider.loadCreatorPosts(),
+                          onPressed: () {
+                            provider.clearPostFilters();
+                            provider.loadCreatorPosts();
+                          },
                           icon: const Icon(Icons.refresh),
                         ),
                       ),
@@ -308,7 +397,9 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                 child: Padding(
                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 16),
                   child: Text(
-                    '${provider.creatorPosts.length} post yuklendi${provider.hasMorePosts ? " (daha fazla var)" : ""}',
+                    provider.postSearchQuery.isNotEmpty || provider.postFilterType != null
+                        ? '${provider.filteredCreatorPosts.length} post gosteriliyor (${provider.creatorPosts.length} toplam)'
+                        : '${provider.creatorPosts.length} post yuklendi${provider.hasMorePosts ? " (daha fazla var)" : ""}',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ),
@@ -318,14 +409,16 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                 const SliverFillRemaining(
                   child: Center(child: CircularProgressIndicator()),
                 )
-              else if (provider.creatorPosts.isEmpty)
+              else if (provider.filteredCreatorPosts.isEmpty && !provider.isLoadingPosts)
                 SliverFillRemaining(
                   child: Center(
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Icon(
-                          Icons.photo_library_outlined,
+                          provider.postSearchQuery.isNotEmpty || provider.postFilterType != null
+                              ? Icons.search_off
+                              : Icons.photo_library_outlined,
                           size: 64,
                           color: isDark
                               ? AppTheme.textSecondaryDark.withValues(alpha: 0.3)
@@ -333,13 +426,22 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                         ),
                         const SizedBox(height: 16),
                         Text(
-                          'Post bulunamadi',
+                          provider.postSearchQuery.isNotEmpty || provider.postFilterType != null
+                              ? 'Sonuc bulunamadi'
+                              : 'Post bulunamadi',
                           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                                 color: isDark
                                     ? AppTheme.textSecondaryDark
                                     : AppTheme.textSecondaryLight,
                               ),
                         ),
+                        if (provider.postSearchQuery.isNotEmpty || provider.postFilterType != null) ...[
+                          const SizedBox(height: 8),
+                          TextButton(
+                            onPressed: () => provider.clearPostFilters(),
+                            child: const Text('Filtreleri Temizle'),
+                          ),
+                        ],
                       ],
                     ),
                   ),
@@ -351,10 +453,10 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                     crossAxisCount: 2,
                     mainAxisSpacing: 12,
                     crossAxisSpacing: 12,
-                    childCount: provider.creatorPosts.length +
+                    childCount: provider.filteredCreatorPosts.length +
                         (provider.isLoadingPosts ? 1 : 0),
                     itemBuilder: (context, index) {
-                      if (index >= provider.creatorPosts.length) {
+                      if (index >= provider.filteredCreatorPosts.length) {
                         return const Center(
                           child: Padding(
                             padding: EdgeInsets.all(16),
@@ -363,7 +465,7 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                         );
                       }
 
-                      final post = provider.creatorPosts[index];
+                      final post = provider.filteredCreatorPosts[index];
                       return PostCard(
                         post: post,
                         onTap: () {
@@ -377,18 +479,33 @@ class _CreatorDetailScreenState extends State<CreatorDetailScreen> {
                             ),
                           );
                         },
-                        onDownload: () {
-                          context.read<DownloadProvider>().downloadPost(
+                        onDownload: () async {
+                          final downloaded = await context.read<DownloadProvider>().downloadPost(
                                 post: post,
                                 creatorName: creator.name,
+                                context: context,
                               );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                '${post.totalMediaCount} dosya indirme listesine eklendi',
+                          if (downloaded) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  '${post.totalMediaCount} dosya indirme listesine eklendi',
+                                ),
+                                action: SnackBarAction(
+                                  label: 'Indirmeler',
+                                  textColor: AppTheme.accent,
+                                  onPressed: () {
+                                    Navigator.of(context).pushAndRemoveUntil(
+                                      MaterialPageRoute(
+                                        builder: (_) => const MainNavigation(initialIndex: 1),
+                                      ),
+                                      (route) => false,
+                                    );
+                                  },
+                                ),
                               ),
-                            ),
-                          );
+                            );
+                          }
                         },
                       );
                     },

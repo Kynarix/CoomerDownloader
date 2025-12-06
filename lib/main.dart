@@ -4,22 +4,35 @@ import 'package:provider/provider.dart';
 import 'providers/app_provider.dart';
 import 'providers/download_provider.dart';
 import 'services/storage_service.dart';
+import 'services/notification_service.dart';
 import 'screens/splash_screen.dart';
+import 'screens/main_navigation.dart';
 import 'utils/theme.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   
   // Initialize services and providers with saved data
   final storageService = StorageService();
+  final notificationService = NotificationService();
   final appProvider = AppProvider();
   final downloadProvider = DownloadProvider();
   
   await Future.wait([
     storageService.init(),
+    notificationService.init(),
     appProvider.init(),
     downloadProvider.init(),
   ]);
+  
+  // Setup notification callback
+  notificationService.onNotificationTapped = (response) {
+    if (response.payload == 'open_downloads') {
+      navigatorKey.currentState?.pushNamed('/downloads');
+    }
+  };
   
   // Set system UI overlay style
   SystemChrome.setSystemUIOverlayStyle(
@@ -74,12 +87,16 @@ class CoomerApp extends StatelessWidget {
           );
 
           return MaterialApp(
+            navigatorKey: navigatorKey,
             title: 'Coomer Downloader',
             debugShowCheckedModeBanner: false,
             themeMode: appProvider.themeMode,
             theme: AppTheme.lightTheme,
             darkTheme: AppTheme.darkTheme,
             home: const SplashScreen(),
+            routes: {
+              '/downloads': (context) => const MainNavigation(initialIndex: 1),
+            },
           );
         },
       ),

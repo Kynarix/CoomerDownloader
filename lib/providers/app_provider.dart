@@ -146,6 +146,53 @@ class AppProvider extends ChangeNotifier {
   bool _isLoadingAllPosts = false;
   bool get isLoadingAllPosts => _isLoadingAllPosts;
 
+  // Post search and filter
+  String _postSearchQuery = '';
+  String get postSearchQuery => _postSearchQuery;
+  
+  String? _postFilterType; // 'image', 'video', null = all
+  String? get postFilterType => _postFilterType;
+  
+  List<Post> get filteredCreatorPosts {
+    var posts = _creatorPosts;
+    
+    // Search filter
+    if (_postSearchQuery.isNotEmpty) {
+      final query = _postSearchQuery.toLowerCase();
+      posts = posts.where((post) {
+        return post.title.toLowerCase().contains(query) ||
+               (post.content?.toLowerCase().contains(query) ?? false);
+      }).toList();
+    }
+    
+    // Type filter
+    if (_postFilterType != null) {
+      if (_postFilterType == 'image') {
+        posts = posts.where((post) => post.imageCount > 0).toList();
+      } else if (_postFilterType == 'video') {
+        posts = posts.where((post) => post.videoCount > 0).toList();
+      }
+    }
+    
+    return posts;
+  }
+
+  void setPostSearchQuery(String query) {
+    _postSearchQuery = query;
+    notifyListeners();
+  }
+
+  void setPostFilterType(String? type) {
+    _postFilterType = type;
+    notifyListeners();
+  }
+
+  void clearPostFilters() {
+    _postSearchQuery = '';
+    _postFilterType = null;
+    notifyListeners();
+  }
+
   void selectCreator(Creator creator) {
     _selectedCreator = creator;
     _creatorPosts = [];

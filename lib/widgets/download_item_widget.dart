@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:open_filex/open_filex.dart';
+import 'dart:io';
 import '../models/download_item.dart';
 import '../utils/theme.dart';
 
@@ -245,11 +247,30 @@ class DownloadItemWidget extends StatelessWidget {
         );
       
       case DownloadStatus.completed:
-        return IconButton(
-          onPressed: () {},
-          icon: const Icon(Icons.check_circle),
-          iconSize: 20,
-          color: AppTheme.success,
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            IconButton(
+              onPressed: item.localPath != null
+                  ? () async {
+                      if (await File(item.localPath!).exists()) {
+                        await OpenFilex.open(item.localPath!);
+                      }
+                    }
+                  : null,
+              icon: const Icon(Icons.open_in_new),
+              iconSize: 20,
+              color: AppTheme.info,
+              tooltip: 'Dosyayi Ac',
+            ),
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(Icons.check_circle),
+              iconSize: 20,
+              color: AppTheme.success,
+              tooltip: 'Tamamlandi',
+            ),
+          ],
         );
       
       case DownloadStatus.cancelled:

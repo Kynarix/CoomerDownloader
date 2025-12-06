@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/download_item.dart';
 import 'storage_service.dart';
+import 'notification_service.dart';
 
 class DownloadService {
   static final DownloadService _instance = DownloadService._internal();
@@ -19,14 +20,14 @@ class DownloadService {
   ));
 
   final StorageService _storageService = StorageService();
+  final NotificationService _notificationService = NotificationService();
   SharedPreferences? _prefs;
 
   static const String _keyCompletedDownloads = 'completed_downloads';
-  static const String _keyDownloadedUrls = 'downloaded_urls';
+  static const String _keyQueuedDownloads = 'queued_downloads';
 
   final List<DownloadItem> _queue = [];
   final List<DownloadItem> _completed = [];
-  final Set<String> _downloadedUrls = {};
   final Map<String, CancelToken> _cancelTokens = {};
   
   bool _isDownloading = false;
@@ -36,7 +37,6 @@ class DownloadService {
 
   List<DownloadItem> get queue => List.unmodifiable(_queue);
   List<DownloadItem> get completed => List.unmodifiable(_completed);
-  Set<String> get downloadedUrls => Set.unmodifiable(_downloadedUrls);
   bool get isDownloading => _isDownloading;
   bool get isPaused => _isPaused;
   int get failedCount => _queue.where((i) => i.status == DownloadStatus.failed).length;
@@ -65,30 +65,62 @@ class DownloadService {
         // Dosya hala mevcut mu kontrol et
         if (item.localPath != null && await File(item.localPath!).exists()) {
           _completed.add(item);
-          _downloadedUrls.add(item.url);
         }
       } catch (e) {
         print('[DownloadService] Error loading download: $e');
       }
     }
+    
+    // Load queued downloads (kaldığı yerden devam et)
+    final queueJson = _prefs!.getStringList(_keyQueuedDownloads) ?? [];
+    _queue.clear();
+    for (final json in queueJson) {
+      try {
+        final map = jsonDecode(json) as Map<String, dynamic>;
+        final item = DownloadItem.fromJson(map);
+        // Status'u pending yap (kaldığı yerden devam etsin)
+        item.status = DownloadStatus.pending;
+        item.progress = 0.0;
+        item.downloadedBytes = 0;
+        _queue.add(item);
+      } catch (e) {
+        print('[DownloadService] Error loading queued download: $e');
+      }
+    }
 
-    // Load downloaded URLs
-    final urls = _prefs!.getStringList(_keyDownloadedUrls) ?? [];
-    _downloadedUrls.addAll(urls);
-
-    print('[DownloadService] Loaded ${_completed.length} completed downloads');
+    print('[DownloadService] Loaded ${_completed.length} completed, ${_queue.length} queued downloads');
+    
+    // Kuyruktaki indirmeleri başlat
+    if (_queue.isNotEmpty) {
+      _notificationService.showDownloadStartedNotification(
+        filename: _queue.first.filename,
+        totalFiles: _queue.length,
+      );
+      _processQueue();
+    }
   }
 
   Future<void> _saveCompletedDownloads() async {
     if (_prefs == null) return;
     final jsonList = _completed.map((item) => jsonEncode(item.toJson())).toList();
     await _prefs!.setStringList(_keyCompletedDownloads, jsonList);
-    await _prefs!.setStringList(_keyDownloadedUrls, _downloadedUrls.toList());
+  }
+
+  Future<void> _saveQueuedDownloads() async {
+    if (_prefs == null) return;
+    // Pending, downloading ve paused olanları kaydet
+    final itemsToSave = _queue.where((item) => 
+      item.status == DownloadStatus.pending ||
+      item.status == DownloadStatus.downloading ||
+      item.status == DownloadStatus.paused
+    ).toList();
+    final jsonList = itemsToSave.map((item) => jsonEncode(item.toJson())).toList();
+    await _prefs!.setStringList(_keyQueuedDownloads, jsonList);
   }
 
   /// URL daha once indirilmis mi kontrol et
   bool isUrlDownloaded(String url) {
-    return _downloadedUrls.contains(url);
+    return _completed.any((i) => i.url == url);
   }
 
   /// Filename ile indirme durumunu kontrol et
@@ -102,22 +134,61 @@ class DownloadService {
   }
 
   void addToQueue(DownloadItem item) {
-    if (_queue.any((i) => i.url == item.url)) return;
-    if (_completed.any((i) => i.url == item.url)) return;
-    if (_downloadedUrls.contains(item.url)) return;
+    // Kuyrukta veya tamamlananlarda aynı URL varsa ekleme
+    if (_queue.any((i) => i.url == item.url)) {
+      print('[DownloadService] Already in queue: ${item.filename}');
+      return;
+    }
+    if (_completed.any((i) => i.url == item.url)) {
+      print('[DownloadService] Already completed: ${item.filename}');
+      return;
+    }
     
+    final isFirstItem = _queue.isEmpty && !_isDownloading;
     _queue.add(item);
+    _saveQueuedDownloads(); // Kuyruğu kaydet
+    print('[DownloadService] Added to queue: ${item.filename}');
+    
+    if (isFirstItem) {
+      _notificationService.showDownloadStartedNotification(
+        filename: item.filename,
+        totalFiles: 1,
+      );
+    }
+    
     _processQueue();
   }
 
   void addMultipleToQueue(List<DownloadItem> items) {
+    final newItems = <DownloadItem>[];
     for (var item in items) {
-      if (!_queue.any((i) => i.url == item.url) &&
-          !_completed.any((i) => i.url == item.url) &&
-          !_downloadedUrls.contains(item.url)) {
-        _queue.add(item);
+      // Kuyrukta veya tamamlananlarda aynı URL varsa ekleme
+      if (_queue.any((i) => i.url == item.url)) {
+        print('[DownloadService] Already in queue: ${item.filename}');
+        continue;
       }
+      if (_completed.any((i) => i.url == item.url)) {
+        print('[DownloadService] Already completed: ${item.filename}');
+        continue;
+      }
+      _queue.add(item);
+      newItems.add(item);
     }
+    
+    if (newItems.isNotEmpty) {
+      _saveQueuedDownloads(); // Kuyruğu kaydet
+      print('[DownloadService] Added ${newItems.length} items to queue');
+      
+      if (_queue.length == newItems.length && !_isDownloading) {
+        _notificationService.showDownloadStartedNotification(
+          filename: newItems.first.filename,
+          totalFiles: newItems.length,
+        );
+      }
+    } else {
+      print('[DownloadService] No new items to add');
+    }
+    
     _processQueue();
   }
 
@@ -162,6 +233,16 @@ class DownloadService {
             item.downloadedBytes = received;
             item.totalBytes = total;
             onProgressUpdate?.call(item);
+            
+            // Bildirim guncelle
+            final downloadingItems = _queue.where((i) => i.status == DownloadStatus.downloading).toList();
+            final currentIndex = downloadingItems.indexOf(item) + 1;
+            _notificationService.showDownloadProgressNotification(
+              filename: item.filename,
+              progress: item.progress,
+              currentFile: currentIndex,
+              totalFiles: _queue.length,
+            );
           }
         },
       );
@@ -171,9 +252,24 @@ class DownloadService {
       item.progress = 1.0;
       _queue.remove(item);
       _completed.add(item);
-      _downloadedUrls.add(item.url);
       _saveCompletedDownloads();
+      _saveQueuedDownloads(); // Kuyruğu güncelle
       onComplete?.call(item);
+      
+      // Her tamamlanan dosya için ayrı bildirim göster
+      _notificationService.showFileCompletedNotification(
+        filename: item.filename,
+        creatorName: item.creatorName,
+      );
+      
+      // Tüm indirmeler bittiyse özet bildirim
+      if (_queue.isEmpty) {
+        _notificationService.cancelDownloadNotification();
+        _notificationService.showDownloadCompleteNotification(
+          filename: item.filename,
+          totalFiles: _completed.length,
+        );
+      }
       
       print('[Download] Completed: ${item.filename}');
     } on DioException catch (e) {
@@ -215,6 +311,7 @@ class DownloadService {
       );
       if (item.id.isNotEmpty) {
         item.status = DownloadStatus.paused;
+        _saveQueuedDownloads();
       }
       cancelToken.cancel();
     } else {
@@ -225,6 +322,7 @@ class DownloadService {
       );
       if (item.id.isNotEmpty) {
         item.status = DownloadStatus.paused;
+        _saveQueuedDownloads();
         onStateChange?.call();
       }
     }
@@ -262,6 +360,7 @@ class DownloadService {
       }
     }
     
+    _saveQueuedDownloads();
     onStateChange?.call();
   }
 
@@ -278,6 +377,7 @@ class DownloadService {
       }
     }
     
+    _saveQueuedDownloads();
     onStateChange?.call();
     _processQueue();
   }
@@ -318,6 +418,7 @@ class DownloadService {
     if (item.id.isNotEmpty) {
       item.status = DownloadStatus.cancelled;
       _queue.remove(item);
+      _saveQueuedDownloads(); // Kuyruğu güncelle
       onStateChange?.call();
     }
   }
@@ -335,6 +436,8 @@ class DownloadService {
     _activeDownloads = 0;
     _isDownloading = false;
     _isPaused = false;
+    _saveQueuedDownloads(); // Kuyruğu temizle
+    _notificationService.cancelDownloadNotification();
     onStateChange?.call();
   }
 
@@ -359,3 +462,4 @@ class DownloadService {
     _processQueue();
   }
 }
+

@@ -375,7 +375,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
                   title: const Text('Gelistirici'),
-                  subtitle: const Text('by Twixx'),
+                  subtitle: const Text('by Kynarix'),
+                ),
+                Divider(
+                  height: 1,
+                  indent: 68,
+                  color: isDark ? Colors.grey[800] : Colors.grey[300],
+                ),
+                ListTile(
+                  leading: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: AppTheme.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(
+                      Icons.forum,
+                      color: AppTheme.accent,
+                      size: 20,
+                    ),
+                  ),
+                  title: const Text('CheatGlobal'),
+                  subtitle: const Text('Forum Konusu'),
+                  trailing: const Icon(Icons.open_in_new, size: 18),
+                  onTap: () async {
+                    final uri = Uri.parse('https://cheatglobal.com/konu/onlyfans-fansly-downloader-android.99634/');
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
+                  },
                 ),
                 Divider(
                   height: 1,

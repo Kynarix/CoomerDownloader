@@ -53,8 +53,9 @@ class PermissionService {
       
       final photosGranted = statuses[Permission.photos]?.isGranted ?? false;
       final videosGranted = statuses[Permission.videos]?.isGranted ?? false;
+      final notificationGranted = statuses[Permission.notification]?.isGranted ?? false;
       
-      print('[Permission] Photos: $photosGranted, Videos: $videosGranted');
+      print('[Permission] Photos: $photosGranted, Videos: $videosGranted, Notification: $notificationGranted');
       return photosGranted && videosGranted;
       
     } else if (sdkVersion >= 30) {
