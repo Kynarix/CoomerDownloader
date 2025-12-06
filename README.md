@@ -35,7 +35,7 @@ A modern Flutter application for downloading content from Coomer.st. Supports On
 
 ```bash
 # Clone the repository
-git clone https://github.com/AzizKaramay/CoomerDownloader.git
+git clone https://github.com/kynarix/CoomerDownloader.git
 cd CoomerDownloader
 
 # Install dependencies
